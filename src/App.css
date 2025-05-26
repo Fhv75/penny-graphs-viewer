@@ -1,0 +1,104 @@
+/* Asegura que el contenedor principal llene la ventana */
+/* RESET GLOBAL */
+* {
+    box-sizing: border-box;
+  }
+  
+  html, body, #root {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+.app {
+    display: flex;
+    flex-direction: row;
+    height: 100vh;      /* <-- fill viewport */
+    margin: 0;
+  }
+  
+  /* Panel central */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;      /* <-- important para que flex-1 funcione */
+  }
+  
+  /* Cabecera */
+  .header {
+    padding: 1rem;
+    background: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  /* Contenedor que envuelve GraphViewer */
+  .viewer-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+    min-height: 0;      /* <-- important */
+  }
+  
+  /* El propio GraphViewer */
+  .viewer {
+    flex: 1;            /* <-- toma todo el espacio restante */
+    display: flex;
+    flex-direction: column;
+    min-height: 0;      /* <-- important */
+  }
+  
+  /* Lienzo del grafo */
+  .graph-container {
+    flex: 1;            /* <-- crece para llenar el alto */
+    min-height: 0;      /* <-- important */
+    border: 1px solid gray;
+    position: relative;
+  }
+  
+  /* Estadísticas */
+  .stats {
+    padding: 0.5rem 1rem;
+    background: #fafafa;
+    border-top: 1px solid #eee;
+  }
+  
+  /* Sidebar */
+  .sidebar {
+    width: 220px;
+    border-left: 1px solid #ddd;
+    overflow-y: auto;
+    padding: 1rem;
+  }
+  
+  /* Lista */
+  .graph-list {
+    list-style: none;
+    margin-top: .5rem;
+  }
+  
+  .graph-list button {
+    display: block;
+    width: 100%;
+    padding: 0.5rem;
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    text-align: left;
+    cursor: pointer;
+  }
+  
+  .graph-list button:hover {
+    background: #eee;
+  }
+  
+  .graph-list button.active {
+    background: #cce5ff;
+    border-color: #66b0ff;
+  }
+  
