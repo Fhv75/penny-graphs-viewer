@@ -2,7 +2,7 @@
   "name": "penny-graph-viewer",
   "private": true,
   "version": "0.0.0",
-  "homepage": "https://fhv75.github.io/penny-graph-viewer/",
+  "homepage": "https://fhv75.github.io/penny-graphs-viewer/",
   "type": "module",
   "scripts": {
     "dev": "vite",

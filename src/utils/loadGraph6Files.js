@@ -9,7 +9,7 @@ export default async function loadAllGraphs() {
 
   for (const num of contactNumbers) {
     try {
-      const url = urlDev + `graphs${num}.txt`
+      const url = urlProd + `graphs${num}.txt`
       const txt = await fetch(url).then(r => r.text())
       
       const codes = txt.split(/\s+/).filter(Boolean)
@@ -23,7 +23,7 @@ export default async function loadAllGraphs() {
 
   // Cargar el archivo adicional
   try {
-    const url = urlDev + 'graphs8_extra.txt'
+    const url = urlProd + 'graphs8_extra.txt'
     const txt = await fetch(url).then(r => r.text())
     
     const codes = txt.split(/\s+/).filter(Boolean)
