@@ -12,12 +12,46 @@ export default function GraphViewer({ graph, showHull }) {
   const showHullRef  = useRef(showHull)
   const movedCoordsRef = useRef({})
 
+  // Rolling animation ref
+  const animationRef = useRef(null)
+
   const [perimeter, setPerimeter] = useState(null)
   const [hullStats, setHullStats] = useState(null)
   const [selectedNode, setSelectedNode] = useState(null)
   const [nodeCoords, setNodeCoords] = useState({ x: 0, y: 0 })
   const [coordInputs, setCoordInputs] = useState({ x: '0', y: '0' })
   const [inputErrors, setInputErrors] = useState({ x: false, y: false })
+
+  // Rolling state
+  const [rollingMode, setRollingMode] = useState(false)
+  const [rollingDisk, setRollingDisk] = useState(null)
+  const [anchorDisk, setAnchorDisk] = useState(null)
+  const [rollingDirection, setRollingDirection] = useState(1) // 1 for counterclockwise, -1 for clockwise
+  const [stepSize, setStepSize] = useState(1) // degrees
+  const [isAnimating, setIsAnimating] = useState(false)
+  const [currentAngle, setCurrentAngle] = useState(0)
+  const [rollingDiskInput, setRollingDiskInput] = useState('')
+  const [anchorDiskInput, setAnchorDiskInput] = useState('')
+
+  const setRollingDiskFromInput = () => {
+    const nodeId = parseInt(rollingDiskInput)
+    if (graph.nodes.includes(nodeId)) {
+      setRollingDisk(nodeId)
+      setRollingDiskInput('')
+    } else {
+      alert(`Node ${nodeId} not found`)
+    }
+  }
+  
+  const setAnchorDiskFromInput = () => {
+    const nodeId = parseInt(anchorDiskInput)
+    if (graph.nodes.includes(nodeId)) {
+      setAnchorDisk(nodeId)
+      setAnchorDiskInput('')
+    } else {
+      alert(`Node ${nodeId} not found`)
+    }
+  }
 
   function marcarGrados(expr) {
     return expr.replace(
@@ -32,14 +66,208 @@ export default function GraphViewer({ graph, showHull }) {
   }
 
   const handleKeyDown = (e) => {
-    if (selectedNode === null) return
+    if (selectedNode === null && !rollingMode) return
     
     if (e.key === 'Enter') {
       e.preventDefault()
-      applyCoordinates()
+      if (!rollingMode) {
+        applyCoordinates()
+      }
     } else if (e.key === 'Escape' || e.key === 'q') {
       e.preventDefault()
       setSelectedNode(null)
+      setRollingMode(false)
+      setRollingDisk(null)
+      setAnchorDisk(null)
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current)
+        setIsAnimating(false)
+      }
+    }
+  }
+  
+  const checkCollisions = () => {
+    if (!rollingDisk || !anchorDisk) return false
+    
+    const rollingPos = movedCoordsRef.current[rollingDisk]
+    if (!rollingPos) return false
+    
+    const allNodeIds = graph.nodes || []
+    
+    for (const nodeId of allNodeIds) {
+      if (nodeId === rollingDisk || nodeId === anchorDisk) continue
+      
+      const otherPos = movedCoordsRef.current[nodeId]
+      if (!otherPos) continue
+      
+      const dx = rollingPos.x - otherPos.x
+      const dy = rollingPos.y - otherPos.y
+      const distance = Math.sqrt(dx * dx + dy * dy)
+      
+      if (distance < NODE_SIZE * 2) {
+        return true // Hay colisión
+      }
+    }
+    
+    return false // No hay colisión
+  }
+
+  const animateRolling = () => {
+    if (typeof rollingDisk !== 'number' || typeof anchorDisk !== 'number' || !netRef.current) return
+  
+    const anchorPos = movedCoordsRef.current[anchorDisk]
+    const rollingPos = movedCoordsRef.current[rollingDisk]
+    
+    if (!anchorPos || !rollingPos) return
+  
+    // Calculate distance between centers
+    const distance = Math.sqrt(
+      Math.pow(rollingPos.x - anchorPos.x, 2) + 
+      Math.pow(rollingPos.y - anchorPos.y, 2)
+    )
+  
+    // Convert step size to radians
+    const stepRad = (stepSize * Math.PI) / 180 * rollingDirection
+  
+    // Calculate new angle
+    const newAngle = currentAngle + stepRad
+  
+    // Calculate new position
+    const newX = anchorPos.x + distance * Math.cos(newAngle)
+    const newY = anchorPos.y + distance * Math.sin(newAngle)
+  
+    // **DETECCIÓN DE COLISIONES**
+    // Verificar si el disco rodante colisionaría con algún otro disco (excepto el ancla)
+    const allNodeIds = graph.nodes || []
+    let collisionDetected = false
+    
+    for (const nodeId of allNodeIds) {
+      if (nodeId === rollingDisk || nodeId === anchorDisk) continue
+      
+      const otherPos = movedCoordsRef.current[nodeId]
+      if (!otherPos) continue
+      
+      // Calcular distancia entre el disco rodante (en su nueva posición) y el otro disco
+      const dx = newX - otherPos.x
+      const dy = newY - otherPos.y
+      const distanceToOther = Math.sqrt(dx * dx + dy * dy)
+      
+      // Si la distancia es menor que 2 radios (considerando un pequeño margen)
+      const minDistance = NODE_SIZE * 2 // 5 pixels de margen para evitar colisiones muy justas
+      
+      if (distanceToOther < minDistance) {
+        collisionDetected = true
+        console.log(`Collision detected with disk ${nodeId}`)
+        break
+      }
+    }
+    
+    // Si hay colisión, detener la animación
+    if (collisionDetected) {
+      setIsAnimating(false)
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current)
+      }
+      // Opcional: mostrar mensaje de colisión
+      // alert('Rolling stopped due to collision!')
+      return
+    }
+  
+    // Si no hay colisión, continuar con el movimiento
+    netRef.current.moveNode(rollingDisk, newX, newY)
+    movedCoordsRef.current[rollingDisk] = { x: newX, y: newY }
+    
+    setCurrentAngle(newAngle)
+    netRef.current.redraw()
+  }
+  
+  const startRolling = () => {
+    if (typeof rollingDisk !== 'number' || typeof anchorDisk !== 'number') return
+    
+    // Calculate initial angle
+    const anchorPos = movedCoordsRef.current[anchorDisk]
+    const rollingPos = movedCoordsRef.current[rollingDisk]
+    
+    const initialAngle = Math.atan2(
+      rollingPos.y - anchorPos.y,
+      rollingPos.x - anchorPos.x
+    )
+    
+    setCurrentAngle(initialAngle)
+    setIsAnimating(true)
+  }
+  
+  const stopRolling = () => {
+    setIsAnimating(false)
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current)
+    }
+  }
+  
+  const stepRolling = () => {
+    if (!isAnimating) {
+      // Verificar colisión antes de hacer el paso
+      const currentPos = movedCoordsRef.current[rollingDisk]
+      const anchorPos = movedCoordsRef.current[anchorDisk]
+      
+      if (currentPos && anchorPos) {
+        const distance = Math.sqrt(
+          Math.pow(currentPos.x - anchorPos.x, 2) + 
+          Math.pow(currentPos.y - anchorPos.y, 2)
+        )
+        
+        const stepRad = (stepSize * Math.PI) / 180 * rollingDirection
+        const newAngle = currentAngle + stepRad
+        const newX = anchorPos.x + distance * Math.cos(newAngle)
+        const newY = anchorPos.y + distance * Math.sin(newAngle)
+        
+        // Verificar colisión en la nueva posición
+        const allNodeIds = graph.nodes || []
+        let wouldCollide = false
+        
+        for (const nodeId of allNodeIds) {
+          if (nodeId === rollingDisk || nodeId === anchorDisk) continue
+          
+          const otherPos = movedCoordsRef.current[nodeId]
+          if (!otherPos) continue
+          
+          const dx = newX - otherPos.x
+          const dy = newY - otherPos.y
+          const distanceToOther = Math.sqrt(dx * dx + dy * dy)
+          
+          if (distanceToOther < NODE_SIZE * 2) {
+            wouldCollide = true
+            break
+          }
+        }
+        
+        if (wouldCollide) {
+          console.log('Step cancelled due to potential collision')
+          return
+        }
+      }
+      
+      animateRolling()
+    }
+  }
+  
+  const toggleRollingMode = () => {
+    setRollingMode(!rollingMode)
+    setRollingDisk(null)
+    setAnchorDisk(null)
+    setSelectedNode(null)
+    setIsAnimating(false)
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current)
+    }
+  }
+  
+  const resetRollingSelection = () => {
+    setRollingDisk(null)
+    setAnchorDisk(null)
+    setIsAnimating(false)
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current)
     }
   }
 
@@ -49,7 +277,7 @@ export default function GraphViewer({ graph, showHull }) {
       document.addEventListener('keydown', handleKeyDown)
       return () => document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [selectedNode, inputErrors, nodeCoords])
+  }, [selectedNode, inputErrors, nodeCoords, rollingMode])
 
   useEffect(() => {
     if (!graph) return
@@ -347,29 +575,42 @@ net.on('dragEnd', (params) => {
 })
 
     net.on('click', (params) => {
-      if (params.nodes.length > 0) {
-        const nodeId = params.nodes[0]
-        let exactPos = movedCoordsRef.current[nodeId]
-        if (!exactPos) {
-          const p = net.getPositions([nodeId])[nodeId]
-          exactPos = { x: p.x, y: p.y}
-          movedCoordsRef.current[nodeId] = exactPos
+      if (rollingMode) {
+        // Handle rolling mode clicks
+        if (params.nodes.length > 0) {
+          const nodeId = params.nodes[0]
+          if (typeof rollingDisk !== 'number') {
+            setRollingDisk(nodeId)
+          } else if (typeof anchorDisk !== 'number' && nodeId !== rollingDisk) {
+            setAnchorDisk(nodeId)
+          }
         }
-        setSelectedNode(nodeId)
-
-        const normalizedCoords = {
-          x: exactPos.x / NODE_SIZE,
-          y: exactPos.y / NODE_SIZE,
-        }
-
-        setNodeCoords({ x: exactPos.x, y: exactPos.y })
-        setCoordInputs({
-          x: normalizedCoords.x.toFixed(8),
-          y: normalizedCoords.y.toFixed(8) * -1,
-        })
-        setInputErrors({ x: false, y: false })
       } else {
-        setSelectedNode(null)
+        // Your existing click handler code
+        if (params.nodes.length > 0) {
+          const nodeId = params.nodes[0]
+          let exactPos = movedCoordsRef.current[nodeId]
+          if (!exactPos) {
+            const p = net.getPositions([nodeId])[nodeId]
+            exactPos = { x: p.x, y: p.y}
+            movedCoordsRef.current[nodeId] = exactPos
+          }
+          setSelectedNode(nodeId)
+
+          const normalizedCoords = {
+            x: exactPos.x / NODE_SIZE,
+            y: exactPos.y / NODE_SIZE,
+          }
+
+          setNodeCoords({ x: exactPos.x, y: exactPos.y })
+          setCoordInputs({
+            x: normalizedCoords.x.toFixed(8),
+            y: normalizedCoords.y.toFixed(8) * -1,
+          })
+          setInputErrors({ x: false, y: false })
+        } else {
+          setSelectedNode(null)
+        }
       }
     })
 
@@ -380,6 +621,24 @@ net.on('dragEnd', (params) => {
     showHullRef.current = showHull
     netRef.current?.redraw()
   }, [showHull])
+
+  useEffect(() => {
+    if (isAnimating) {
+      const animate = () => {
+        animateRolling()
+        animationRef.current = requestAnimationFrame(animate)
+      }
+      animationRef.current = requestAnimationFrame(animate)
+    } else if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current)
+    }
+  
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current)
+      }
+    }
+  }, [isAnimating, rollingDisk, anchorDisk, stepSize, rollingDirection, currentAngle])
 
   const handleCoordChange = (axis, value) => {
     setCoordInputs((prev) => ({ ...prev, [axis]: value }))
@@ -502,18 +761,215 @@ net.on('dragEnd', (params) => {
         </div>
       )}
 
-      <div style={{ padding: '4px 8px', fontSize: 14, color: '#444' }}>
-        {selectedNode !== null && (
-          <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>
-            Evaluated: X = {nodeCoords.x.toFixed(8)}, Y = {nodeCoords.y.toFixed(8)}
+      {/* Rolling Mode Controls */}
+      {rollingMode && (
+        <div style={{
+          padding: '8px',
+          background: '#e3f2fd',
+          borderTop: '1px solid #2196f3',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          fontSize: '14px',
+          flexWrap: 'wrap'
+        }}>          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>Rolling Disk: </span>
+            <input
+              type="text"
+              placeholder="ID"
+              value={rollingDiskInput}
+              onChange={(e) => setRollingDiskInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && setRollingDiskFromInput()}
+              style={{
+                width: '80px',
+                padding: '2px 6px',
+                border: '1px solid #ccc',
+                borderRadius: '3px'
+              }}
+            />
+            <button
+              onClick={setRollingDiskFromInput}
+              style={{
+                padding: '2px 8px',
+                background: '#2196f3',
+                color: 'white',
+                border: 'none',
+                borderRadius: '3px',
+                cursor: 'pointer',
+                fontSize: '12px'
+              }}
+            >
+              Aceptar
+            </button>
+            <span style={{ 
+              padding: '2px 8px', 
+              backgroundColor: rollingDisk !== null && rollingDisk !== undefined ? '#ff6b6b' : '#f5f5f5',
+              color: rollingDisk !== null && rollingDisk !== undefined ? 'white' : '#666',
+              borderRadius: '3px',
+              minWidth: '30px',
+              textAlign: 'center'
+            }}>
+              {rollingDisk ?? 'None'}
+              {console.log(`Rolling Disk: ${rollingDisk}`) /* Debugging log */ }
+            </span>
           </div>
-        )}
-        {perimeter !== null && `Perímetro: ${perimeter.toFixed(8)}`}
-        {hullStats && (
-          <div style={{ fontSize: 12, marginTop: 4 }}>
-            Discos del Hull: {hullStats.hullDisks} | Tangentes: {hullStats.tangentSegments} | Arcos: {hullStats.arcSegments}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>Pivote: </span>
+            <input
+              type="text"
+              placeholder="ID"
+              value={anchorDiskInput}
+              onChange={(e) => setAnchorDiskInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && setAnchorDiskFromInput()}
+              style={{
+                width: '80px',
+                padding: '2px 6px',
+                border: '1px solid #ccc',
+                borderRadius: '3px'
+              }}
+            />
+            <button
+              onClick={setAnchorDiskFromInput}
+              style={{
+                padding: '2px 8px',
+                background: '#2196f3',
+                color: 'white',
+                border: 'none',
+                borderRadius: '3px',
+                cursor: 'pointer',
+                fontSize: '12px'
+              }}
+            >
+              Aceptar
+            </button>
+            <span style={{ 
+              padding: '2px 8px', 
+              backgroundColor: anchorDisk ? '#51cf66' : '#f5f5f5',
+              color: anchorDisk ? 'white' : '#666',
+              borderRadius: '3px',
+              minWidth: '30px',
+              textAlign: 'center'
+            }}>
+              {anchorDisk || 'None'}
+            </span>
           </div>
-        )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label>Direccion:</label>
+            <select 
+              value={rollingDirection} 
+              onChange={(e) => setRollingDirection(parseInt(e.target.value))}
+              style={{ padding: '2px 6px', borderRadius: '3px', border: '1px solid #ccc' }}
+            >
+              <option value={-1}>CCW</option>
+              <option value={1}>CW</option>
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label>Step (°):</label>
+            <input
+              type="number"
+              value={stepSize}
+              onChange={(e) => setStepSize(Number(e.target.value))}
+              style={{ width: '60px', padding: '2px 6px', borderRadius: '3px', border: '1px solid #ccc' }}
+              min="1"
+              max="90"
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={stepRolling}
+              disabled={typeof rollingDisk !== 'number' || typeof anchorDisk !== 'number'}
+              style={{
+                padding: '4px 12px',
+                background: (typeof rollingDisk !== 'number' || typeof anchorDisk !== 'number') ? '#ccc' : '#4caf50',
+                color: 'white',
+                border: 'none',
+                borderRadius: '3px',
+                cursor: (typeof rollingDisk !== 'number' || typeof anchorDisk !== 'number') ? 'not-allowed' : 'pointer',
+                fontSize: '12px'
+              }}
+            >
+              Step
+            </button>
+
+            <button
+              onClick={isAnimating ? stopRolling : startRolling}
+              disabled={typeof rollingDisk !== 'number' || typeof anchorDisk !== 'number'}
+              style={{
+                padding: '4px 12px',
+                background: (typeof rollingDisk !== 'number' || typeof anchorDisk !== 'number') ? '#ccc' : (isAnimating ? '#f44336' : '#2196f3'),
+                color: 'white',
+                border: 'none',
+                borderRadius: '3px',
+                cursor: (typeof rollingDisk !== 'number' || typeof anchorDisk !== 'number') ? 'not-allowed' : 'pointer',
+                fontSize: '12px'
+              }}
+            >
+              {isAnimating ? 'Stop' : 'Start'}
+            </button>
+
+            <button
+              onClick={resetRollingSelection}
+              style={{
+                padding: '4px 12px',
+                background: '#ff9800',
+                color: 'white',
+                border: 'none',
+                borderRadius: '3px',
+                cursor: 'pointer',
+                fontSize: '12px'
+              }}
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+      )}
+
+
+      <div style={{ 
+        padding: '4px 8px', 
+        fontSize: 14, 
+        color: '#444',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderTop: '1px solid #dee2e6'
+      }}>
+        <div>
+          {selectedNode !== null && !rollingMode && (
+            <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>
+              Evaluated: X = {nodeCoords.x.toFixed(8)}, Y = {nodeCoords.y.toFixed(8)}
+            </div>
+          )}
+          {perimeter !== null && `Perímetro: ${perimeter.toFixed(8)}`}
+          {hullStats && (
+            <div style={{ fontSize: 12, marginTop: 4 }}>
+              Discos del Hull: {hullStats.hullDisks} | Tangentes: {hullStats.tangentSegments} | Arcos: {hullStats.arcSegments}
+            </div>
+          )}
+        </div>
+        
+        <button
+          onClick={toggleRollingMode}
+          style={{
+            padding: '6px 12px',
+            background: rollingMode ? '#f44336' : '#4caf50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '3px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: 'bold'
+          }}
+        >
+          {rollingMode ? 'Salir' : 'Rolling Mode'}
+        </button>
       </div>
     </div>
   )
