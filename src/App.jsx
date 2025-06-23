@@ -30,7 +30,7 @@ export default function App () {
     <div className="app">
       <div className="main">
         <div className="header">
-          <h1>Visualizador de Penny Graphs</h1>
+          <h1>Contact Graph Visualizer</h1>
         </div>
 
         <div className="viewer-wrapper">
