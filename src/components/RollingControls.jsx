@@ -1,18 +1,17 @@
-// src/components/RollingControls.jsx
-import React from 'react'
+import React, { useState } from 'react'
 import PropTypes from 'prop-types'
 
 export default function RollingControls({
-  rollingDisk,
+  rollingDisks, // Array de objetos {id, direction}
   anchorDisk,
   rollingDiskInput,
   anchorDiskInput,
   onRollingDiskInputChange,
-  onSetRollingDisk,
+  onAddRollingDisk,
+  onRemoveRollingDisk,
+  onUpdateRollingDiskDirection,
   onAnchorDiskInputChange,
   onSetAnchorDisk,
-  rollingDirection,
-  onDirectionChange,
   stepSize,
   onStepSizeChange,
   isAnimating,
@@ -23,27 +22,15 @@ export default function RollingControls({
   onClearPlot,
   showPlot,
 }) {
+  const [newDiskDirection, setNewDiskDirection] = useState(1) // CW por defecto
+
+  const handleAddDisk = () => {
+    onAddRollingDisk(newDiskDirection)
+  }
+
   return (
     <div className="rolling-controls">
-      {/* Selector de disco rodante 1*/}
-      <div className="rolling-section">
-        <span>Rolling Disk:</span>
-        <input
-          type="text"
-          placeholder="ID"
-          value={rollingDiskInput}
-          onChange={onRollingDiskInputChange}
-          onKeyPress={e => e.key === 'Enter' && onSetRollingDisk()}
-        />
-        <button onClick={onSetRollingDisk} className="btn-accept">
-          Aceptar
-        </button>
-        <span className={`status ${rollingDisk != null ? 'active' : ''}`}>
-          {rollingDisk ?? 'None'}
-        </span>
-      </div>
-
-      {/* Selector de pivote */}
+      {/* Selector de disco pivote */}
       <div className="rolling-section">
         <span>Pivote:</span>
         <input
@@ -61,16 +48,57 @@ export default function RollingControls({
         </span>
       </div>
 
-      {/* Dirección */}
+      {/* Selector de discos rodantes */}
       <div className="rolling-section">
-        <label>Dirección:</label>
-        <select value={rollingDirection} onChange={onDirectionChange}>
+        <span>Add Rolling Disk:</span>
+        <input
+          type="text"
+          placeholder="ID"
+          value={rollingDiskInput}
+          onChange={onRollingDiskInputChange}
+          onKeyPress={e => e.key === 'Enter' && handleAddDisk()}
+        />
+        <select 
+          value={newDiskDirection} 
+          onChange={e => setNewDiskDirection(parseInt(e.target.value, 10))}
+        >
           <option value={-1}>CCW</option>
           <option value={1}>CW</option>
         </select>
+        <button onClick={handleAddDisk} className="btn-accept">
+          Add
+        </button>
       </div>
 
-      {/* Paso en grados */}
+      {/* Lista de discos rodantes activos */}
+      {rollingDisks.length > 0 && (
+        <div className="rolling-disks-list">
+          <span>Rolling Disks:</span>
+          <div className="disks-container">
+            {rollingDisks.map((disk, index) => (
+              <div key={index} className="disk-item">
+                <span className="disk-id">#{disk.id}</span>
+                <select 
+                  value={disk.direction}
+                  onChange={e => onUpdateRollingDiskDirection(index, parseInt(e.target.value, 10))}
+                  className="direction-select"
+                >
+                  <option value={-1}>CCW</option>
+                  <option value={1}>CW</option>
+                </select>
+                <button 
+                  onClick={() => onRemoveRollingDisk(index)}
+                  className="btn-remove"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Paso en gr  os */}
       <div className="rolling-section">
         <label>Step (°):</label>
         <input
@@ -86,14 +114,14 @@ export default function RollingControls({
       <div className="rolling-actions">
         <button
           onClick={onStep}
-          disabled={rollingDisk == null || anchorDisk == null}
+          disabled={rollingDisks.length === 0 || anchorDisk == null}
           className="btn-step"
         >
           Step
         </button>
         <button
           onClick={onStartStop}
-          disabled={rollingDisk == null || anchorDisk == null}
+          disabled={rollingDisks.length === 0 || anchorDisk == null}
           className="btn-start"
         >
           {isAnimating ? 'Stop' : 'Start'}
@@ -113,16 +141,19 @@ export default function RollingControls({
 }
 
 RollingControls.propTypes = {
-  rollingDisk:             PropTypes.number,
+  rollingDisks:             PropTypes.arrayOf(PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    direction: PropTypes.oneOf([-1, 1]).isRequired
+  })).isRequired,
   anchorDisk:              PropTypes.number,
   rollingDiskInput:        PropTypes.string.isRequired,
   anchorDiskInput:         PropTypes.string.isRequired,
   onRollingDiskInputChange: PropTypes.func.isRequired,
-  onSetRollingDisk:        PropTypes.func.isRequired,
+  onAddRollingDisk:        PropTypes.func.isRequired,
+  onRemoveRollingDisk:     PropTypes.func.isRequired,
+  onUpdateRollingDiskDirection: PropTypes.func.isRequired,
   onAnchorDiskInputChange:  PropTypes.func.isRequired,
   onSetAnchorDisk:         PropTypes.func.isRequired,
-  rollingDirection:        PropTypes.oneOf([ -1, 1 ]).isRequired,
-  onDirectionChange:       PropTypes.func.isRequired,
   stepSize:                PropTypes.number.isRequired,
   onStepSizeChange:        PropTypes.func.isRequired,
   isAnimating:             PropTypes.bool.isRequired,

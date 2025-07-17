@@ -2,12 +2,10 @@ import { useState, useCallback } from 'react'
 
 export default function usePlotData() {
   const [showPlot, setShowPlot] = useState(false)
-  const [angleData, setAngleData] = useState([])
-  const [perimeterData, setPerimeterData] = useState([])
+  const [plotData, setPlotData] = useState([])  // Array de objetos con toda la información del plot
 
   const clearPlotData = useCallback(() => {
-    setAngleData([])
-    setPerimeterData([])
+    setPlotData([])
   }, [])
   
   const togglePlot = useCallback(() => {
@@ -16,11 +14,9 @@ export default function usePlotData() {
 
   return {
     showPlot,
-    angleData,
-    perimeterData,
+    plotData,           // Nuevo: datos estructurados del plot
     setShowPlot,
-    setAngleData,
-    setPerimeterData,
+    setPlotData,        // Nuevo: setter para datos estructurados
     togglePlot,
     clearPlotData
   }

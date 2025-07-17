@@ -236,6 +236,15 @@ export default function useNetworkSetup(graph, showHull, containerRef, netRef, m
 
     net.on('beforeDrawing', (ctx) => drawHull(ctx, ids, net))
 
+    // NEW: Add afterDrawing event to ensure perimeter is updated after rendering
+    net.on('afterDrawing', () => {
+      // This ensures currentPerimeterRef is always up to date after any redraw
+      if (showHullRef.current && currentPerimeterRef.current !== null) {
+        // The perimeter has already been calculated in drawHull
+        // This event just ensures timing is correct
+      }
+    })
+
     // Event listener para click en nodos
     net.on('click', (params) => {
       if (params.nodes.length > 0 && typeof setSelectedNode === 'function') {

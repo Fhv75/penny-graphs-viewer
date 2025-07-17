@@ -4,7 +4,7 @@ import RollingPlot from './RollingPlot'
 import HullInfoBar from './HullInfoBar'
 import RollingControls from './RollingControls'
 import useNetworkSetup from '../hooks/useNetworkSetup'
-import useRollingAnimation from '../hooks/useRollingAnimation'
+import useMultiRollingAnimation from '../hooks/useMultiRollingAnimation'
 import useNodeSelection from '../hooks/useNodeSelection'
 import usePlotData from '../hooks/usePlotData'
 import './styles.css'
@@ -30,7 +30,7 @@ export default function GraphViewer({ graph, showHull }) {
     setCoordInputs
   } = useNodeSelection(netRef, movedCoordsRef, NODE_SIZE)
 
-  const { perimeter, hullStats } = useNetworkSetup(
+  const { perimeter, hullStats, currentPerimeterRef } = useNetworkSetup(
     graph,
     showHull,
     containerRef,
@@ -45,20 +45,17 @@ export default function GraphViewer({ graph, showHull }) {
 
   const {
     showPlot,
-    angleData,
-    perimeterData,
+    plotData,        // Cambio: ahora usamos plotData en lugar de angleData/perimeterData separados
     setShowPlot,
-    setAngleData,
-    setPerimeterData,
+    setPlotData,     // Cambio: nuevo setter para plotData
     togglePlot,
     clearPlotData
   } = usePlotData()
 
   const {
     rollingMode,
-    rollingDisk,
+    rollingDisks, // Array de {id, direction}
     anchorDisk,
-    rollingDirection,
     stepSize,
     isAnimating,
     currentAngle,
@@ -66,18 +63,27 @@ export default function GraphViewer({ graph, showHull }) {
     anchorDiskInput,
     setRollingDiskInput,
     setAnchorDiskInput,
-    setRollingDirection,
     setStepSize,
     setRollingMode,
-    setRollingDisk,
+    addRollingDisk,
+    removeRollingDisk,
+    updateRollingDiskDirection,
     setAnchorDisk,
     startRolling,
     stopRolling,
     stepRolling,
     resetRollingSelection,
-    setRollingDiskFromInput,
     setAnchorDiskFromInput
-  } = useRollingAnimation(graph, netRef, movedCoordsRef, NODE_SIZE, perimeter, setAngleData, setPerimeterData)
+  } = useMultiRollingAnimation(
+    graph, 
+    netRef, 
+    movedCoordsRef, 
+    NODE_SIZE, 
+    perimeter, 
+    setPlotData,     // Cambio: pasamos setPlotData en lugar de setAngleData
+    () => {},        // Placeholder para setPerimeterData (ya no necesario)
+    currentPerimeterRef // NUEVO: pasamos la referencia al perímetro actual
+  )
 
   // Global keyboard event handling
   useEffect(() => {
@@ -86,6 +92,14 @@ export default function GraphViewer({ graph, showHull }) {
       return () => document.removeEventListener('keydown', handleKeyDown)
     }
   }, [selectedNode, handleKeyDown])
+
+  const handleAddRollingDisk = (direction) => {
+    const diskId = parseInt(rollingDiskInput, 10)
+    if (!isNaN(diskId)) {
+      addRollingDisk(diskId, direction)
+      setRollingDiskInput('') // Clear input after adding
+    }
+  }
 
   return (
     <div className="main-container">
@@ -105,16 +119,16 @@ export default function GraphViewer({ graph, showHull }) {
 
       {rollingMode && (
         <RollingControls
-          rollingDisk={rollingDisk}
+          rollingDisks={rollingDisks}
           anchorDisk={anchorDisk}
           rollingDiskInput={rollingDiskInput}
           anchorDiskInput={anchorDiskInput}
           onRollingDiskInputChange={e => setRollingDiskInput(e.target.value)}
-          onSetRollingDisk={setRollingDiskFromInput}
+          onAddRollingDisk={handleAddRollingDisk}
+          onRemoveRollingDisk={removeRollingDisk}
+          onUpdateRollingDiskDirection={updateRollingDiskDirection}
           onAnchorDiskInputChange={e => setAnchorDiskInput(e.target.value)}
           onSetAnchorDisk={setAnchorDiskFromInput}
-          rollingDirection={rollingDirection}
-          onDirectionChange={e => setRollingDirection(parseInt(e.target.value, 10))}
           stepSize={stepSize}
           onStepSizeChange={e => setStepSize(Number(e.target.value))}
           isAnimating={isAnimating}
@@ -135,8 +149,7 @@ export default function GraphViewer({ graph, showHull }) {
       />
 
       <RollingPlot
-        angleData={angleData}
-        perimeterData={perimeterData}
+        plotData={plotData}      // Cambio: pasamos plotData en lugar de angleData/perimeterData
         isVisible={showPlot}
         onClose={() => setShowPlot(false)}
       />
