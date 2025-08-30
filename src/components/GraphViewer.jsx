@@ -1,12 +1,16 @@
+// Updated GraphViewer.jsx with minimal perimeter search integration
+
 import React, { useEffect, useRef, useState } from 'react'
 import { NodeInfoPanel } from './NodeInfoPanel'
 import RollingPlot from './RollingPlot'
 import HullInfoBar from './HullInfoBar'
 import RollingControls from './RollingControls'
+import MinimalPerimeterControls from './MinimalPerimeterControls'
 import useNetworkSetup from '../hooks/useNetworkSetup'
 import useMultiRollingAnimation from '../hooks/useMultiRollingAnimation'
 import useNodeSelection from '../hooks/useNodeSelection'
 import usePlotData from '../hooks/usePlotData'
+import useMinimalPerimeterSearch from '../hooks/useMinimalPerimeterSearch'
 import './styles.css'
 
 const NODE_SIZE = 40
@@ -16,6 +20,9 @@ export default function GraphViewer({ graph, showHull }) {
   const containerRef = useRef(null)
   const netRef = useRef(null)
   const movedCoordsRef = useRef({})
+
+  // New state for minimal perimeter search visibility
+  const [showMinimalSearch, setShowMinimalSearch] = useState(false)
 
   const {
     selectedNode,
@@ -45,16 +52,16 @@ export default function GraphViewer({ graph, showHull }) {
 
   const {
     showPlot,
-    plotData,        // Cambio: ahora usamos plotData en lugar de angleData/perimeterData separados
+    plotData,
     setShowPlot,
-    setPlotData,     // Cambio: nuevo setter para plotData
+    setPlotData,
     togglePlot,
     clearPlotData
   } = usePlotData()
 
   const {
     rollingMode,
-    rollingDisks, // Array de {id, direction}
+    rollingDisks,
     anchorDisk,
     stepSize,
     isAnimating,
@@ -80,9 +87,28 @@ export default function GraphViewer({ graph, showHull }) {
     movedCoordsRef, 
     NODE_SIZE, 
     perimeter, 
-    setPlotData,     // Cambio: pasamos setPlotData en lugar de setAngleData
-    () => {},        // Placeholder para setPerimeterData (ya no necesario)
-    currentPerimeterRef // NUEVO: pasamos la referencia al perímetro actual
+    setPlotData,
+    () => {},
+    currentPerimeterRef
+  )
+
+  // NEW: Minimal perimeter search hook
+  const {
+    isSearching,
+    searchProgress,
+    bestConfiguration,
+    searchResults,
+    searchParams,
+    setSearchParams,
+    startBruteForceSearch,
+    stopSearch,
+    applyBestConfiguration,
+    applyConfiguration
+  } = useMinimalPerimeterSearch(
+    graph,
+    netRef,
+    movedCoordsRef,
+    NODE_SIZE
   )
 
   // Global keyboard event handling
@@ -97,7 +123,16 @@ export default function GraphViewer({ graph, showHull }) {
     const diskId = parseInt(rollingDiskInput, 10)
     if (!isNaN(diskId)) {
       addRollingDisk(diskId, direction)
-      setRollingDiskInput('') // Clear input after adding
+      setRollingDiskInput('')
+    }
+  }
+
+  // NEW: Toggle minimal search visibility
+  const toggleMinimalSearch = () => {
+    setShowMinimalSearch(!showMinimalSearch)
+    // If we're hiding it, also stop any ongoing search
+    if (showMinimalSearch && isSearching) {
+      stopSearch()
     }
   }
 
@@ -141,15 +176,38 @@ export default function GraphViewer({ graph, showHull }) {
         />
       )}
 
+      {/* NEW: Minimal Perimeter Search Controls */}
+      {showMinimalSearch && (
+        <MinimalPerimeterControls
+          isSearching={isSearching}
+          searchProgress={searchProgress}
+          bestConfiguration={bestConfiguration}
+          searchResults={searchResults}
+          searchParams={searchParams}
+          onSearchParamsChange={setSearchParams}
+          onStartSearch={startBruteForceSearch}
+          onStopSearch={stopSearch}
+          onApplyBest={applyBestConfiguration}
+          onResultSelect={(result) => {
+            applyConfiguration(result)
+          }}
+          currentPerimeter={perimeter}
+        />
+      )}
+
+      {/* Updated HullInfoBar with minimal search toggle */}
       <HullInfoBar 
         perimeter={perimeter}
         hullStats={hullStats}
         rollingMode={rollingMode}
         toggleRollingMode={() => setRollingMode(!rollingMode)}
+        showMinimalSearch={showMinimalSearch}
+        toggleMinimalSearch={toggleMinimalSearch}
+        isSearching={isSearching}
       />
 
       <RollingPlot
-        plotData={plotData}      // Cambio: pasamos plotData en lugar de angleData/perimeterData
+        plotData={plotData}
         isVisible={showPlot}
         onClose={() => setShowPlot(false)}
       />
