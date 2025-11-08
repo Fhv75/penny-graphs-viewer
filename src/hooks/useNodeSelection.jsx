@@ -1,4 +1,3 @@
-// hooks/useNodeSelection.js
 import { useState, useCallback } from 'react'
 import { marcarGrados } from '../utils/mathUtils'
 import * as math from 'mathjs'

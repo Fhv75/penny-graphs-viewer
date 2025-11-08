@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 
 export default function usePlotData() {
   const [showPlot, setShowPlot] = useState(false)
-  const [plotData, setPlotData] = useState([])  // Array de objetos con toda la información del plot
+  const [plotData, setPlotData] = useState([]) 
 
   const clearPlotData = useCallback(() => {
     setPlotData([])
@@ -14,9 +14,9 @@ export default function usePlotData() {
 
   return {
     showPlot,
-    plotData,           // Nuevo: datos estructurados del plot
+    plotData,           
     setShowPlot,
-    setPlotData,        // Nuevo: setter para datos estructurados
+    setPlotData,       
     togglePlot,
     clearPlotData
   }

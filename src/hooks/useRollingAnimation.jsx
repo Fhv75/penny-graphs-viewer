@@ -14,7 +14,6 @@ export default function useRollingAnimation(graph, netRef, movedCoordsRef, NODE_
   const animationRef = useRef(null)
 
   const checkCollisions = useCallback((newX, newY) => {
-    // Cambiar la condición para verificar explícitamente null/undefined en lugar de falsy
     if (rollingDisk === null || rollingDisk === undefined || 
         anchorDisk === null || anchorDisk === undefined) return false
     
@@ -39,7 +38,6 @@ export default function useRollingAnimation(graph, netRef, movedCoordsRef, NODE_
   }, [rollingDisk, anchorDisk, graph.nodes, NODE_SIZE])
 
   const animateRolling = useCallback(() => {
-    // Cambiar también aquí la verificación
     if (rollingDisk === null || rollingDisk === undefined || 
         anchorDisk === null || anchorDisk === undefined || !netRef.current) return
   
@@ -66,7 +64,6 @@ export default function useRollingAnimation(graph, netRef, movedCoordsRef, NODE_
       return
     }
 
-    // Actualizar datos del plot
     setAngleData((prev) => [...prev, newAngle])
     setPerimeterData((prev) => [...prev, perimeter || 0])
   
@@ -78,7 +75,6 @@ export default function useRollingAnimation(graph, netRef, movedCoordsRef, NODE_
   }, [rollingDisk, anchorDisk, stepSize, rollingDirection, currentAngle, checkCollisions, perimeter, setAngleData, setPerimeterData])
 
   const startRolling = useCallback(() => {
-    // Cambiar también aquí la verificación
     if (rollingDisk === null || rollingDisk === undefined || 
         anchorDisk === null || anchorDisk === undefined) return
     
@@ -122,7 +118,6 @@ export default function useRollingAnimation(graph, netRef, movedCoordsRef, NODE_
           return
         }
 
-        // Actualizar datos del plot también en step manual
         setAngleData((prev) => [...prev, newAngle])
         setPerimeterData((prev) => [...prev, perimeter || 0])
       }

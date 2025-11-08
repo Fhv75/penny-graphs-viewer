@@ -15,7 +15,6 @@ const RollingPlot = ({ plotData, isVisible, onClose }) => {
 
         switch (plotMode) {
             case 'perimeter-vs-angle':
-                // Plot perimeter as a function of rotation angle
                 newDisplayData = plotData.map((data, index) => {
                     const stepDegrees = (data.stepAngle || 0.017453292519943295) * 180 / Math.PI;
                     const cumulativeAngle = stepDegrees * (index + 1);
@@ -29,7 +28,6 @@ const RollingPlot = ({ plotData, isVisible, onClose }) => {
                 break;
 
             case 'perimeter-vs-time':
-                // Traditional time series plot
                 newDisplayData = plotData.map((data, index) => ({
                     step: index,
                     perimeter: data.perimeter || 0,
@@ -38,7 +36,6 @@ const RollingPlot = ({ plotData, isVisible, onClose }) => {
                 break;
 
             case 'individual-angles':
-                // Show individual disk angles
                 newDisplayData = plotData.map((data, index) => {
                     const item = {
                         step: index,
@@ -47,8 +44,7 @@ const RollingPlot = ({ plotData, isVisible, onClose }) => {
                     
                     if (data.diskAngles) {
                         Object.entries(data.diskAngles).forEach(([diskId, angle]) => {
-                            // Calculate cumulative angle for each disk
-                            const stepAngleRad = angle; // This is the step angle in radians
+                            const stepAngleRad = angle;
                             const cumulativeAngleDeg = (stepAngleRad * (index + 1) * 180) / Math.PI;
                             item[`disk_${diskId}`] = cumulativeAngleDeg;
                         });
@@ -59,7 +55,6 @@ const RollingPlot = ({ plotData, isVisible, onClose }) => {
                 break;break;
         }
 
-        //console.log('Display data mode:', plotMode, 'First 3 points:', newDisplayData.slice(0, 3));
         setDisplayData(newDisplayData);
     }, [plotData, plotMode]);
 
@@ -72,7 +67,6 @@ const RollingPlot = ({ plotData, isVisible, onClose }) => {
 
     if (!isVisible) return null;
 
-    // Calculate domains
     const perimeterValues = displayData.map(d => d.perimeter).filter(v => !isNaN(v));
     const perimeterMin = perimeterValues.length > 0 ? Math.min(...perimeterValues) : 0;
     const perimeterMax = perimeterValues.length > 0 ? Math.max(...perimeterValues) : 1;
@@ -218,7 +212,6 @@ const RollingPlot = ({ plotData, isVisible, onClose }) => {
             display: 'flex',
             flexDirection: 'column'
         }}>
-            {/* Header */}
             <div style={{
                 padding: '10px 15px',
                 borderBottom: '1px solid #ddd',
@@ -277,7 +270,6 @@ const RollingPlot = ({ plotData, isVisible, onClose }) => {
                 </div>
             </div>
 
-            {/* Plot Area */}
             <div style={{ flex: 1, padding: '10px' }}>
                 {displayData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
@@ -297,7 +289,6 @@ const RollingPlot = ({ plotData, isVisible, onClose }) => {
                 )}
             </div>
 
-            {/* Stats */}
             {displayData.length > 0 && (
                 <div style={{
                     padding: '8px 15px',

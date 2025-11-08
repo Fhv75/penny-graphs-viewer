@@ -1,8 +1,3 @@
-// src/utils/mathUtils.js
-
-/**
- * Asegura que las funciones trigonométricas interpreten grados si no se especifica unidad
- */
 export function marcarGrados(expr) {
     return expr.replace(
         /\b(sin|cos|tan|asin|acos|atan)\s*\(\s*([^\)]+?)\s*\)/g,
@@ -16,9 +11,6 @@ export function marcarGrados(expr) {
     );
 }
 
-/**
-   * Calcula el perímetro a partir de los segmentos del hull
-*/
 export function calculatePerimeter(segments, nodeSize) {
     let total = 0;
     for (const seg of segments) {

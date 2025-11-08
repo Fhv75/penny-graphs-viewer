@@ -1,4 +1,3 @@
-// hooks/useMinimalPerimeterSearch.js - FIXED VERSION
 import { useState, useRef, useCallback } from 'react'
 import { calculatePerimeter } from '../utils/mathUtils'
 import DiskConvexHull from '../algorithms/diskConvexHull/DiskConvexHull'
@@ -20,7 +19,7 @@ export default function useMinimalPerimeterSearch(
     temperature: 100.0,
     coolingRate: 0.995,
     perturbationRadius: 25,
-    contactConstraints: true,  // Consider touching, but don't force it
+    contactConstraints: true, 
     localOptimization: true,
     randomSamples: 5000
   })
@@ -28,37 +27,31 @@ export default function useMinimalPerimeterSearch(
   const searchRef = useRef(null)
   const abortRef = useRef(false)
 
-  // Check if configuration is linear (to filter out problematic cases) - MOVED TO TOP
   const isLinearConfiguration = useCallback((positions) => {
     const nodeIds = Object.keys(positions)
     if (nodeIds.length <= 2) return true
     
     const points = nodeIds.map(id => positions[id])
     
-    // Check if all points are approximately collinear
     const p1 = points[0]
     const p2 = points[1]
     
-    // Vector from p1 to p2
     const dx = p2.x - p1.x
     const dy = p2.y - p1.y
     const length = Math.sqrt(dx * dx + dy * dy)
     
-    if (length < 1e-10) return true // Points are too close
+    if (length < 1e-10) return true
     
-    // Unit vector
     const ux = dx / length
     const uy = dy / length
     
-    // Check if all other points lie on the same line
     for (let i = 2; i < points.length; i++) {
       const p = points[i]
       const dpx = p.x - p1.x
       const dpy = p.y - p1.y
       
-      // Cross product to check if point is on line
       const cross = Math.abs(dpx * uy - dpy * ux)
-      if (cross > nodeSize * 0.1) { // Allow small tolerance
+      if (cross > nodeSize * 0.1) { 
         return false
       }
     }
@@ -66,12 +59,10 @@ export default function useMinimalPerimeterSearch(
     return true
   }, [nodeSize])
 
-  // Calculate perimeter for a given configuration - with linear filtering
   const calculateConfigurationPerimeter = useCallback((positions) => {
     try {
-      // Filter out linear configurations to avoid hull computation bugs
       if (isLinearConfiguration(positions)) {
-        return Infinity // Linear configurations typically have poor perimeters anyway
+        return Infinity
       }
 
       const disks = Object.entries(positions).map(([id, pos]) => ({
@@ -83,14 +74,13 @@ export default function useMinimalPerimeterSearch(
 
       if (disks.length < 2) return Infinity
 
-      // Check for overlaps (strict constraint)
       for (let i = 0; i < disks.length; i++) {
         for (let j = i + 1; j < disks.length; j++) {
           const distance = Math.sqrt(
             (disks[i].x - disks[j].x) ** 2 + (disks[i].y - disks[j].y) ** 2
           )
           if (distance < 2 * nodeSize - 1e-8) {
-            return Infinity // Overlapping disks
+            return Infinity 
           }
         }
       }
@@ -104,7 +94,6 @@ export default function useMinimalPerimeterSearch(
     }
   }, [nodeSize, isLinearConfiguration])
 
-  // Generate grid points within a region
   const generateGridPoints = useCallback((centerX, centerY, radius, resolution) => {
     const points = []
     const step = (2 * radius) / resolution
@@ -120,7 +109,6 @@ export default function useMinimalPerimeterSearch(
     return points
   }, [])
 
-  // Generate random perturbation
   const perturbConfiguration = useCallback((positions, perturbationRadius) => {
     const newPositions = {}
     
@@ -137,17 +125,12 @@ export default function useMinimalPerimeterSearch(
     return newPositions
   }, [])
 
-  // Check if configuration is linear (to filter out problematic cases) - REMOVED DUPLICATE
-
-  // Generate diverse geometric patterns - IMPROVED
   const generateGeometricPatterns = useCallback((nodeIds) => {
     const configurations = []
     const n = nodeIds.length
     const minSpacing = nodeSize * 2.05
 
-    // 1. TOUCHING CONFIGURATIONS (when they make sense)
     if (n === 2) {
-      // Two disks touching
       configurations.push({
         [nodeIds[0]]: { x: -nodeSize, y: 0 },
         [nodeIds[1]]: { x: nodeSize, y: 0 }
@@ -155,7 +138,6 @@ export default function useMinimalPerimeterSearch(
     }
 
     if (n === 3) {
-      // Equilateral triangle - touching
       const spacing = 2 * nodeSize
       const height = spacing * Math.sqrt(3) / 2
       configurations.push({
@@ -168,9 +150,7 @@ export default function useMinimalPerimeterSearch(
     // 2. SKIP LINEAR ARRANGEMENTS - they cause hull bugs and are typically suboptimal
     // (Linear arrangements removed to avoid convex hull computation issues)
 
-    // 3. OPTIMAL PACKING PATTERNS for specific numbers
     if (n === 4) {
-      // Square arrangement (touching corners)
       const spacing = 2 * nodeSize
       configurations.push({
         [nodeIds[0]]: { x: -spacing/2, y: -spacing/2 },
@@ -179,7 +159,6 @@ export default function useMinimalPerimeterSearch(
         [nodeIds[3]]: { x: -spacing/2, y: spacing/2 }
       })
       
-      // Diamond arrangement
       configurations.push({
         [nodeIds[0]]: { x: 0, y: -spacing },
         [nodeIds[1]]: { x: -spacing, y: 0 },
@@ -189,7 +168,6 @@ export default function useMinimalPerimeterSearch(
     }
 
     if (n === 5) {
-      // Pentagon arrangement
       for (let scale = 1.0; scale <= 1.5; scale += 0.25) {
         const radius = minSpacing * scale
         const pentagonPositions = {}
@@ -205,7 +183,6 @@ export default function useMinimalPerimeterSearch(
     }
 
     if (n === 6) {
-      // Perfect hexagon - touching
       const spacing = 2 * nodeSize
       configurations.push({
         [nodeIds[0]]: { x: spacing, y: 0 },
@@ -218,13 +195,11 @@ export default function useMinimalPerimeterSearch(
     }
 
     if (n === 7) {
-      // CRITICAL: Hexagon + center (optimal 7-disk packing)
       const spacing = 2 * nodeSize
       const hexRadius = spacing
       
-      // Hexagon with center
       configurations.push({
-        [nodeIds[0]]: { x: 0, y: 0 }, // Center disk
+        [nodeIds[0]]: { x: 0, y: 0 }, 
         [nodeIds[1]]: { x: hexRadius, y: 0 },
         [nodeIds[2]]: { x: hexRadius/2, y: hexRadius * Math.sqrt(3)/2 },
         [nodeIds[3]]: { x: -hexRadius/2, y: hexRadius * Math.sqrt(3)/2 },
@@ -233,7 +208,6 @@ export default function useMinimalPerimeterSearch(
         [nodeIds[6]]: { x: hexRadius/2, y: -hexRadius * Math.sqrt(3)/2 }
       })
       
-      // Also try slightly larger hexagon + center
       for (let scale = 1.1; scale <= 1.3; scale += 0.1) {
         const scaledRadius = hexRadius * scale
         configurations.push({
@@ -248,9 +222,8 @@ export default function useMinimalPerimeterSearch(
       }
     }
 
-    // 4. GENERAL GRID ARRANGEMENTS (avoid linear)
     const gridSize = Math.ceil(Math.sqrt(n))
-    if (gridSize > 1) { // Avoid 1xN linear grids
+    if (gridSize > 1) { 
       const positions = {}
       let index = 0
       for (let row = 0; row < gridSize && index < n; row++) {
@@ -264,13 +237,11 @@ export default function useMinimalPerimeterSearch(
         }
       }
       
-      // Only add if not essentially linear
       if (!isLinearConfiguration(positions)) {
         configurations.push(positions)
       }
     }
 
-    // 5. HEXAGONAL PACKING (multiple scales)
     for (let scale = 1.0; scale <= 1.5; scale += 0.25) {
       const hexPositions = {}
       let index = 0
@@ -293,7 +264,6 @@ export default function useMinimalPerimeterSearch(
       }
     }
 
-    // 6. CIRCULAR ARRANGEMENTS (various radii)
     for (let radiusMultiplier = 1.0; radiusMultiplier <= 4.0; radiusMultiplier += 0.3) {
       const radius = nodeSize * 2 * radiusMultiplier
       const circlePositions = {}
@@ -307,12 +277,10 @@ export default function useMinimalPerimeterSearch(
       configurations.push(circlePositions)
     }
 
-    // 7. FLOWER/STAR PATTERNS (center + petals) - with contact optimization
     if (n >= 4) {
       const centerDisk = nodeIds[0]
       const petalDisks = nodeIds.slice(1)
       
-      // Try exact touching distance first
       const touchingRadius = 2 * nodeSize
       const flowerPositions = {}
       flowerPositions[centerDisk] = { x: 0, y: 0 }
@@ -326,7 +294,6 @@ export default function useMinimalPerimeterSearch(
       })
       configurations.push(flowerPositions)
       
-      // Try slightly larger radii as well
       for (let petalRadius = touchingRadius * 1.1; petalRadius <= touchingRadius * 1.5; petalRadius += touchingRadius * 0.1) {
         const flowerPositions2 = {}
         flowerPositions2[centerDisk] = { x: 0, y: 0 }
@@ -342,13 +309,11 @@ export default function useMinimalPerimeterSearch(
       }
     }
 
-    // 8. POLYGON ARRANGEMENTS (triangular, square, pentagonal layouts)
     for (let sides = 3; sides <= Math.min(8, n + 2); sides++) {
       for (let scale = 1.0; scale <= 1.5; scale += 0.25) {
         const polygonPositions = {}
         const radius = minSpacing * sides / (2 * Math.PI) * scale
         
-        // Place disks around polygon vertices first
         for (let i = 0; i < Math.min(n, sides); i++) {
           const id = nodeIds[i]
           const angle = (2 * Math.PI * i) / sides
@@ -358,7 +323,6 @@ export default function useMinimalPerimeterSearch(
           }
         }
         
-        // Place remaining disks inside or in second ring
         for (let i = sides; i < n; i++) {
           const id = nodeIds[i]
           const innerRadius = radius * 0.6
@@ -378,7 +342,6 @@ export default function useMinimalPerimeterSearch(
     return configurations
   }, [nodeSize])
 
-  // NEW: Contact graph optimization - ensure meaningful contacts
   const optimizeContactGraph = useCallback((positions, maxIterations = 100) => {
     let current = { ...positions }
     let improved = true
@@ -388,11 +351,9 @@ export default function useMinimalPerimeterSearch(
       improved = false
       const nodeIds = Object.keys(current)
       
-      // For each disk, try to establish contacts that improve the configuration
       for (const nodeId of nodeIds) {
         const currentPos = current[nodeId]
         
-        // Find closest disks to this one
         const distances = []
         for (const otherId of nodeIds) {
           if (otherId === nodeId) continue
@@ -405,13 +366,11 @@ export default function useMinimalPerimeterSearch(
         
         distances.sort((a, b) => a.distance - b.distance)
         
-        // Try to establish contact with closest disk if not touching and close enough
         if (distances.length > 0) {
           const closest = distances[0]
           const targetDistance = 2 * nodeSize
           const currentDistance = closest.distance
           
-          // If very close but not touching, snap to contact
           if (currentDistance > targetDistance && currentDistance < targetDistance * 1.2) {
             const dx = closest.pos.x - currentPos.x
             const dy = closest.pos.y - currentPos.y
@@ -423,7 +382,6 @@ export default function useMinimalPerimeterSearch(
                 y: closest.pos.y - (dy / length) * targetDistance
               }
               
-              // Check if this new position doesn't cause overlaps
               let validMove = true
               for (const otherId of nodeIds) {
                 if (otherId === nodeId || otherId === closest.id) continue
@@ -442,10 +400,10 @@ export default function useMinimalPerimeterSearch(
                 current[nodeId] = newPos
                 const newPerimeter = calculateConfigurationPerimeter(current)
                 
-                if (newPerimeter <= originalPerimeter * 1.001) { // Allow tiny increase for contact
+                if (newPerimeter <= originalPerimeter * 1.001) { 
                   improved = true
                 } else {
-                  current[nodeId] = currentPos // Revert
+                  current[nodeId] = currentPos 
                 }
               }
             }
@@ -459,7 +417,6 @@ export default function useMinimalPerimeterSearch(
     return current
   }, [nodeSize, calculateConfigurationPerimeter])
 
-  // NEW: Gradient-based local optimization (your suggestion!)
   const gradientOptimization = useCallback((positions, maxIterations = 200) => {
     let current = { ...positions }
     let currentPerimeter = calculateConfigurationPerimeter(current)
@@ -473,11 +430,9 @@ export default function useMinimalPerimeterSearch(
       let bestImprovement = 0
       let bestMove = null
       
-      // Try moving each disk in cardinal and diagonal directions
       for (const nodeId of nodeIds) {
         const originalPos = current[nodeId]
         
-        // 8 directions + 4 smaller diagonal steps
         const directions = [
           { dx: 1, dy: 0 }, { dx: -1, dy: 0 }, { dx: 0, dy: 1 }, { dx: 0, dy: -1 },
           { dx: 0.707, dy: 0.707 }, { dx: -0.707, dy: 0.707 }, 
@@ -502,16 +457,14 @@ export default function useMinimalPerimeterSearch(
             }
           }
           
-          current[nodeId] = originalPos // Restore
+          current[nodeId] = originalPos 
         }
       }
       
-      // Apply best move if found
       if (bestMove) {
         current[bestMove.nodeId] = bestMove.newPos
         currentPerimeter -= bestImprovement
       } else {
-        // If no improvement, reduce step size
         currentStepSize *= 0.8
         if (currentStepSize < minStepSize) break
       }
@@ -520,28 +473,23 @@ export default function useMinimalPerimeterSearch(
     return { positions: current, perimeter: currentPerimeter }
   }, [nodeSize, calculateConfigurationPerimeter])
 
-  // Enhanced local optimization with contact awareness
   const localOptimization = useCallback((positions, maxSteps = 50) => {
     let current = { ...positions }
     
-    // First, apply gradient optimization
     const gradientResult = gradientOptimization(current, 100)
     current = gradientResult.positions
     
-    // Then, optimize contact graph
     current = optimizeContactGraph(current, 50)
     
-    // Final gradient polish
     const finalResult = gradientOptimization(current, 50)
     
     return finalResult
   }, [gradientOptimization, optimizeContactGraph])
 
-  // Exhaustive grid search for small configurations
   const exhaustiveGridSearch = useCallback(async (nodeIds, results) => {
     const { gridResolution, searchRadius } = searchParams
     
-    if (nodeIds.length > 3) return // Only for very small configurations
+    if (nodeIds.length > 3) return 
     
     const gridPoints = generateGridPoints(0, 0, searchRadius, gridResolution)
     const totalCombinations = Math.pow(gridPoints.length, nodeIds.length)
@@ -585,7 +533,6 @@ export default function useMinimalPerimeterSearch(
     await searchCombinations({}, 0)
   }, [searchParams, generateGridPoints, calculateConfigurationPerimeter])
 
-  // Random sampling search
   const randomSamplingSearch = useCallback(async (nodeIds, results) => {
     const { searchRadius, randomSamples } = searchParams
     
@@ -617,36 +564,32 @@ export default function useMinimalPerimeterSearch(
     }
   }, [searchParams, calculateConfigurationPerimeter])
 
-  // NEW: Trigonometric rolling optimization (your brute force idea!) - FIXED SCOPE ERROR
   const trigonometricRollingSearch = useCallback(async (nodeIds, results) => {
-    if (nodeIds.length < 3) return // Need at least 3 for meaningful rolling
+    if (nodeIds.length < 3) return 
     
     const configurations = generateGeometricPatterns(nodeIds)
     const bestConfigs = configurations
       .map(config => ({ config, perimeter: calculateConfigurationPerimeter(config) }))
       .filter(item => item.perimeter < Infinity)
       .sort((a, b) => a.perimeter - b.perimeter)
-      .slice(0, 3) // Take top 3 as starting points
+      .slice(0, 3) 
     
     for (const { config } of bestConfigs) {
       if (abortRef.current) break
       
-      // Try rolling each disk around others
       for (let rollingDiskIdx = 0; rollingDiskIdx < nodeIds.length; rollingDiskIdx++) {
         if (abortRef.current) break
         
         const rollingDiskId = nodeIds[rollingDiskIdx]
-        const fixedDisks = nodeIds.filter((_, idx) => idx !== rollingDiskIdx) // FIXED: Properly define fixedDisks
+        const fixedDisks = nodeIds.filter((_, idx) => idx !== rollingDiskIdx) 
         
-        // For each fixed disk, try rolling the selected disk around it
         for (const fixedDiskId of fixedDisks) {
           if (abortRef.current) break
           
           const fixedPos = config[fixedDiskId]
-          const rollingRadius = 2 * nodeSize // Touching distance
+          const rollingRadius = 2 * nodeSize 
           
-          // Try different angles around the fixed disk
-          for (let angle = 0; angle < 2 * Math.PI; angle += Math.PI / 36) { // 5-degree steps
+          for (let angle = 0; angle < 2 * Math.PI; angle += Math.PI / 36) { 
             const newConfig = { ...config }
             newConfig[rollingDiskId] = {
               x: fixedPos.x + rollingRadius * Math.cos(angle),
@@ -655,7 +598,6 @@ export default function useMinimalPerimeterSearch(
             
             const perimeter = calculateConfigurationPerimeter(newConfig)
             if (perimeter < Infinity) {
-              // Apply local optimization to this configuration
               const optimized = localOptimization(newConfig, 20)
               
               results.push({
@@ -668,7 +610,6 @@ export default function useMinimalPerimeterSearch(
           }
         }
         
-        // Also try rolling around pairs of disks (finding optimal positions between them)
         for (let i = 0; i < fixedDisks.length - 1; i++) {
           for (let j = i + 1; j < fixedDisks.length; j++) {
             if (abortRef.current) break
@@ -678,7 +619,6 @@ export default function useMinimalPerimeterSearch(
             const pos1 = config[disk1Id]
             const pos2 = config[disk2Id]
             
-            // Find points that are equidistant from both disks
             const midpoint = {
               x: (pos1.x + pos2.x) / 2,
               y: (pos1.y + pos2.y) / 2
@@ -686,8 +626,7 @@ export default function useMinimalPerimeterSearch(
             
             const distance = Math.sqrt((pos2.x - pos1.x) ** 2 + (pos2.y - pos1.y) ** 2)
             
-            if (distance > 4 * nodeSize) { // Only if there's room between them
-              // Try positions along the perpendicular bisector
+            if (distance > 4 * nodeSize) {
               const perpAngle = Math.atan2(pos2.y - pos1.y, pos2.x - pos1.x) + Math.PI / 2
               
               for (let offset = -nodeSize * 2; offset <= nodeSize * 2; offset += nodeSize * 0.5) {
@@ -718,11 +657,9 @@ export default function useMinimalPerimeterSearch(
     setSearchProgress(85)
   }, [generateGeometricPatterns, calculateConfigurationPerimeter, localOptimization])
 
-  // Enhanced simulated annealing with contact-aware moves
   const simulatedAnnealingSearch = useCallback(async (nodeIds, initialConfigs, results) => {
     const { maxIterations, temperature: initialTemp, coolingRate, perturbationRadius } = searchParams
     
-    // Run SA from multiple starting configurations
     for (let configIdx = 0; configIdx < Math.min(initialConfigs.length, 3); configIdx++) {
       if (abortRef.current) break
       
@@ -737,10 +674,8 @@ export default function useMinimalPerimeterSearch(
           await new Promise(resolve => setTimeout(resolve, 0))
         }
         
-        // Enhanced perturbation that considers contact relationships
         const newPositions = {}
         Object.entries(currentPositions).forEach(([id, pos]) => {
-          // Check if this disk is in contact with others
           let hasContact = false
           Object.entries(currentPositions).forEach(([otherId, otherPos]) => {
             if (id !== otherId) {
@@ -751,7 +686,6 @@ export default function useMinimalPerimeterSearch(
             }
           })
           
-          // Use smaller perturbations for disks that have contacts
           const effectiveRadius = hasContact ? 
             perturbationRadius * 0.3 * (temperature / initialTemp) : 
             perturbationRadius * (temperature / initialTemp)
@@ -791,7 +725,6 @@ export default function useMinimalPerimeterSearch(
     }
   }, [searchParams, calculateConfigurationPerimeter])
 
-  // Geometric pattern search
   const geometricPatternSearch = useCallback(async (nodeIds, results) => {
     const patterns = generateGeometricPatterns(nodeIds)
     
@@ -809,7 +742,6 @@ export default function useMinimalPerimeterSearch(
         let finalPerimeter = perimeter
         let method = 'geometric-pattern'
         
-        // Apply local optimization if enabled
         if (searchParams.localOptimization) {
           const optimized = localOptimization(config)
           if (optimized.perimeter < perimeter) {
@@ -829,7 +761,6 @@ export default function useMinimalPerimeterSearch(
     }
   }, [generateGeometricPatterns, calculateConfigurationPerimeter, searchParams.localOptimization, localOptimization])
 
-  // Main search function
   const startBruteForceSearch = useCallback(async () => {
     if (!graph || !netRef.current) return
 
@@ -845,28 +776,21 @@ export default function useMinimalPerimeterSearch(
     try {
       console.log(`Starting comprehensive minimal perimeter search for ${nodeIds.length} disks`)
 
-      // Strategy 1: Exhaustive search for small configurations
       if (nodeIds.length <= 3) {
         await exhaustiveGridSearch(nodeIds, results)
       }
 
-      // Strategy 2: Random sampling
       await randomSamplingSearch(nodeIds, results)
 
-      // Strategy 3: Geometric patterns
       await geometricPatternSearch(nodeIds, results)
 
-      // Strategy 4: Trigonometric rolling optimization (your brute force idea!)
       await trigonometricRollingSearch(nodeIds, results)
 
-      // Strategy 5: Simulated annealing from best patterns found so far
       const initialConfigs = generateGeometricPatterns(nodeIds)
       await simulatedAnnealingSearch(nodeIds, initialConfigs, results)
 
-      // Final processing
       setSearchProgress(90)
       
-      // Sort and deduplicate results
       results.sort((a, b) => a.perimeter - b.perimeter)
       
       const uniqueResults = []
@@ -886,7 +810,6 @@ export default function useMinimalPerimeterSearch(
         console.log(`Search complete! Found ${uniqueResults.length} unique configurations`)
         console.log(`Best perimeter: ${uniqueResults[0].perimeter.toFixed(12)} (method: ${uniqueResults[0].method})`)
         
-        // Log method diversity
         const methods = [...new Set(uniqueResults.map(r => r.method))]
         console.log(`Methods used: ${methods.join(', ')}`)
       }
@@ -907,7 +830,6 @@ export default function useMinimalPerimeterSearch(
     generateGeometricPatterns
   ])
 
-  // Apply configuration to visualization
   const applyConfiguration = useCallback((configuration) => {
     if (!configuration || !netRef.current) return
     
@@ -919,7 +841,6 @@ export default function useMinimalPerimeterSearch(
     netRef.current.redraw()
   }, [])
 
-  // Stop search
   const stopSearch = useCallback(() => {
     abortRef.current = true
     setIsSearching(false)

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import PropTypes from 'prop-types'
 
 export default function RollingControls({
-  rollingDisks, // Array de objetos {id, direction}
+  rollingDisks,
   anchorDisk,
   rollingDiskInput,
   anchorDiskInput,
@@ -21,16 +21,29 @@ export default function RollingControls({
   onTogglePlot,
   onClearPlot,
   showPlot,
+  stopConfig,
+  onStopConfigChange,
+  currentAngle,
 }) {
-  const [newDiskDirection, setNewDiskDirection] = useState(1) // CW por defecto
+  const [newDiskDirection, setNewDiskDirection] = useState(1)
 
   const handleAddDisk = () => {
     onAddRollingDisk(newDiskDirection)
   }
 
+  const setStopMode = (mode) => {
+    onStopConfigChange(prev => ({ ...prev, mode }))
+  }
+  const setAngleDeg = (val) => {
+    const n = Number(val)
+    onStopConfigChange(prev => ({ ...prev, angleDeg: Number.isFinite(n) ? n : prev.angleDeg }))
+  }
+  const setRegion = (patch) => {
+    onStopConfigChange(prev => ({ ...prev, region: { ...prev.region, ...patch } }))
+  }
+
   return (
     <div className="rolling-controls">
-      {/* Selector de disco pivote */}
       <div className="rolling-section">
         <span>Pivote:</span>
         <input
@@ -48,7 +61,6 @@ export default function RollingControls({
         </span>
       </div>
 
-      {/* Selector de discos rodantes */}
       <div className="rolling-section">
         <span>Add Rolling Disk:</span>
         <input
@@ -70,7 +82,6 @@ export default function RollingControls({
         </button>
       </div>
 
-      {/* Lista de discos rodantes activos */}
       {rollingDisks.length > 0 && (
         <div className="rolling-disks-list">
           <span>Rolling Disks:</span>
@@ -98,7 +109,6 @@ export default function RollingControls({
         </div>
       )}
 
-      {/* Paso en gr  os */}
       <div className="rolling-section">
         <label>Step (°):</label>
         <input
@@ -110,7 +120,74 @@ export default function RollingControls({
         />
       </div>
 
-      {/* Botones de acción */}
+      <div className="rolling-section">
+        <label>Stop:</label>
+        <select
+          value={stopConfig.mode}
+          onChange={e => setStopMode(e.target.value)}
+        >
+          <option value="none">None</option>
+          <option value="angle">Swept Angle</option>
+          <option value="region">Region (X/Y)</option>
+        </select>
+
+        {stopConfig.mode === 'angle' && (
+          <>
+            <label>Target (°):</label>
+            <input
+              type="number"
+              min="0"
+              value={stopConfig.angleDeg}
+              onChange={e => setAngleDeg(e.target.value)}
+            />
+            <span className="status">θ = {Number(currentAngle || 0).toFixed(2)}°</span>
+          </>
+        )}
+
+        {stopConfig.mode === 'region' && (
+          <div className="stop-region">
+            <span>X:</span>
+            <select
+              value={stopConfig.region.cmpX}
+              onChange={e => setRegion({ cmpX: e.target.value })}
+            >
+              <option value=">=">{'\u2265'}</option>
+              <option value="<=">{'\u2264'}</option>
+            </select>
+            <input
+              type="number"
+              placeholder="x*"
+              value={stopConfig.region.x ?? ''}
+              onChange={e => setRegion({ x: e.target.value === '' ? null : Number(e.target.value) })}
+            />
+
+            <span>Y:</span>
+            <select
+              value={stopConfig.region.cmpY}
+              onChange={e => setRegion({ cmpY: e.target.value })}
+            >
+              <option value=">=">{'\u2265'}</option>
+              <option value="<=">{'\u2264'}</option>
+            </select>
+            <input
+              type="number"
+              placeholder="y*"
+              value={stopConfig.region.y ?? ''}
+              onChange={e => setRegion({ y: e.target.value === '' ? null : Number(e.target.value) })}
+            />
+
+            <span>ε:</span>
+            <input
+              type="number"
+              step="0.1"
+              value={stopConfig.region.eps}
+              onChange={e => setRegion({ eps: Number(e.target.value) })}
+              title="Tolerancia para las comparaciones"
+            />
+          </div>
+        )}
+      </div>
+
       <div className="rolling-actions">
         <button
           onClick={onStep}
@@ -163,4 +240,18 @@ RollingControls.propTypes = {
   onTogglePlot:            PropTypes.func.isRequired,
   onClearPlot:             PropTypes.func.isRequired,
   showPlot:                PropTypes.bool.isRequired,
+
+  stopConfig:              PropTypes.shape({
+    mode:      PropTypes.oneOf(['none','angle','region']).isRequired,
+    angleDeg:  PropTypes.number,
+    region:    PropTypes.shape({
+      x:    PropTypes.number,
+      cmpX: PropTypes.oneOf(['>=','<=']),
+      y:    PropTypes.number,
+      cmpY: PropTypes.oneOf(['>=','<=']),
+      eps:  PropTypes.number,
+    })
+  }).isRequired,
+  onStopConfigChange:      PropTypes.func.isRequired,
+  currentAngle:            PropTypes.number,
 }

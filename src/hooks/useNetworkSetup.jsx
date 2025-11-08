@@ -225,7 +225,6 @@ export default function useNetworkSetup(graph, showHull, containerRef, netRef, m
 
     const ids = graph.nodes
 
-    // Initial separation of nodes
     for (let pass = 0; pass < 10; pass++) {
       let movedAny = false
       for (const id of ids) {
@@ -236,16 +235,11 @@ export default function useNetworkSetup(graph, showHull, containerRef, netRef, m
 
     net.on('beforeDrawing', (ctx) => drawHull(ctx, ids, net))
 
-    // NEW: Add afterDrawing event to ensure perimeter is updated after rendering
     net.on('afterDrawing', () => {
-      // This ensures currentPerimeterRef is always up to date after any redraw
       if (showHullRef.current && currentPerimeterRef.current !== null) {
-        // The perimeter has already been calculated in drawHull
-        // This event just ensures timing is correct
       }
     })
 
-    // Event listener para click en nodos
     net.on('click', (params) => {
       if (params.nodes.length > 0 && typeof setSelectedNode === 'function') {
         const nodeId = params.nodes[0]
@@ -253,9 +247,8 @@ export default function useNetworkSetup(graph, showHull, containerRef, netRef, m
         
         setSelectedNode(nodeId)
         
-        // Convertir coordenadas a valores relativos al NODE_SIZE y invertir Y para el display
         const relativeX = position.x / NODE_SIZE
-        const relativeY = -position.y / NODE_SIZE // Invertir Y para el display
+        const relativeY = -position.y / NODE_SIZE 
         
         if (typeof setNodeCoords === 'function') {
           setNodeCoords({ x: position.x, y: position.y })
@@ -284,7 +277,6 @@ export default function useNetworkSetup(graph, showHull, containerRef, netRef, m
       
       const allNodeIds = graph.nodes
       
-      // Apply repulsion in iterations until stable
       for (let iteration = 0; iteration < 10; iteration++) {
         if (!resolveAllOverlaps(net, allNodeIds)) {
           break
@@ -295,7 +287,7 @@ export default function useNetworkSetup(graph, showHull, containerRef, netRef, m
     })
 
     return () => net.destroy()
-  }, [graph, NODE_SIZE]) // Removemos las funciones de las dependencias
+  }, [graph, NODE_SIZE]) 
 
   useEffect(() => {
     showHullRef.current = showHull

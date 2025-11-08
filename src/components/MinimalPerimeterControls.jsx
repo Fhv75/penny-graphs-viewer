@@ -16,11 +16,9 @@ export default function MinimalPerimeterControls({
   const [showResults, setShowResults] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
 
-  // Calculate improvement metrics
   const improvement = bestConfiguration && currentPerimeter ? 
     ((currentPerimeter - bestConfiguration.perimeter) / currentPerimeter * 100) : 0
 
-  // Group results by method for analysis
   const resultsByMethod = searchResults.reduce((acc, result) => {
     const method = result.method
     if (!acc[method]) acc[method] = []
@@ -28,7 +26,6 @@ export default function MinimalPerimeterControls({
     return acc
   }, {})
 
-  // Export results for research
   const exportResults = () => {
     const data = {
       searchParams,
@@ -42,9 +39,9 @@ export default function MinimalPerimeterControls({
         count: results.length,
         bestPerimeter: Math.min(...results.map(r => r.perimeter)),
         averagePerimeter: results.reduce((sum, r) => sum + r.perimeter, 0) / results.length,
-        results: results.slice(0, 10) // Top 10 for each method
+        results: results.slice(0, 10)  
       })),
-      allResults: searchResults.slice(0, 50) // Top 50 overall
+      allResults: searchResults.slice(0, 50) 
     }
     
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })

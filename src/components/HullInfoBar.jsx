@@ -1,4 +1,3 @@
-// Updated HullInfoBar.jsx
 export default function HullInfoBar({ 
     perimeter, 
     hullStats, 
@@ -39,7 +38,6 @@ export default function HullInfoBar({
               </div>
               
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  {/* Minimal Search Toggle */}
                   <button
                       onClick={toggleMinimalSearch}
                       className={`minimal-search-toggle ${showMinimalSearch ? 'on' : 'off'}`}
@@ -79,7 +77,6 @@ export default function HullInfoBar({
                       )}
                   </button>
   
-                  {/* Rolling Mode Toggle */}
                   <button
                       onClick={toggleRollingMode}
                       className={`rolling-toggle ${rollingMode ? 'on' : 'off'}`}
@@ -99,7 +96,6 @@ export default function HullInfoBar({
                   </button>
               </div>
   
-              {/* CSS for spinner animation */}
               <style jsx>{`
                   @keyframes spin {
                       0% { transform: rotate(0deg); }

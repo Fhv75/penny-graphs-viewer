@@ -1,5 +1,3 @@
-// Updated GraphViewer.jsx with minimal perimeter search integration
-
 import React, { useEffect, useRef, useState } from 'react'
 import { NodeInfoPanel } from './NodeInfoPanel'
 import RollingPlot from './RollingPlot'
@@ -21,7 +19,6 @@ export default function GraphViewer({ graph, showHull }) {
   const netRef = useRef(null)
   const movedCoordsRef = useRef({})
 
-  // New state for minimal perimeter search visibility
   const [showMinimalSearch, setShowMinimalSearch] = useState(false)
 
   const {
@@ -68,6 +65,8 @@ export default function GraphViewer({ graph, showHull }) {
     currentAngle,
     rollingDiskInput,
     anchorDiskInput,
+    stopConfig,           
+    setStopConfig,        
     setRollingDiskInput,
     setAnchorDiskInput,
     setStepSize,
@@ -92,7 +91,6 @@ export default function GraphViewer({ graph, showHull }) {
     currentPerimeterRef
   )
 
-  // NEW: Minimal perimeter search hook
   const {
     isSearching,
     searchProgress,
@@ -111,7 +109,6 @@ export default function GraphViewer({ graph, showHull }) {
     NODE_SIZE
   )
 
-  // Global keyboard event handling
   useEffect(() => {
     if (selectedNode !== null) {
       document.addEventListener('keydown', handleKeyDown)
@@ -127,13 +124,9 @@ export default function GraphViewer({ graph, showHull }) {
     }
   }
 
-  // NEW: Toggle minimal search visibility
   const toggleMinimalSearch = () => {
     setShowMinimalSearch(!showMinimalSearch)
-    // If we're hiding it, also stop any ongoing search
-    if (showMinimalSearch && isSearching) {
-      stopSearch()
-    }
+    if (showMinimalSearch && isSearching) stopSearch()
   }
 
   return (
@@ -173,10 +166,13 @@ export default function GraphViewer({ graph, showHull }) {
           onTogglePlot={togglePlot}
           onClearPlot={clearPlotData}
           showPlot={showPlot}
+
+          stopConfig={stopConfig}
+          onStopConfigChange={setStopConfig}
+          currentAngle={currentAngle}
         />
       )}
 
-      {/* NEW: Minimal Perimeter Search Controls */}
       {showMinimalSearch && (
         <MinimalPerimeterControls
           isSearching={isSearching}
@@ -188,14 +184,11 @@ export default function GraphViewer({ graph, showHull }) {
           onStartSearch={startBruteForceSearch}
           onStopSearch={stopSearch}
           onApplyBest={applyBestConfiguration}
-          onResultSelect={(result) => {
-            applyConfiguration(result)
-          }}
+          onResultSelect={(result) => { applyConfiguration(result) }}
           currentPerimeter={perimeter}
         />
       )}
 
-      {/* Updated HullInfoBar with minimal search toggle */}
       <HullInfoBar 
         perimeter={perimeter}
         hullStats={hullStats}
