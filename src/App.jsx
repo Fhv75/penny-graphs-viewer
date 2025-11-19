@@ -1,22 +1,18 @@
-// src/App.jsx
 import React, { useEffect, useState } from 'react'
 import GraphViewer   from './components/GraphViewer'
 import GraphList     from './components/GraphList'
-import loadAllGraphs from './utils/loadGraph6Files'  // Importar la nueva función
+import loadAllGraphs from './utils/loadGraph6Files' 
 import './App.css'
 
 
-// -----------------------------------------------------------------------------
 export default function App () {
   const [collections, setCollections] = useState([])
   const [setIdx, setSetIdx]           = useState(0)
   const [graphIdx, setGraphIdx]       = useState(0)
   const [showHull, setShowHull]       = useState(true)
 
-  // Cargar grafos de contactos usando la nueva función
   useEffect(() => {
     loadAllGraphs().then(txtSets => {
-      // Combinar JSON estático con los nuevos sets cargados
       setCollections([...txtSets])
     }).catch(error => {
       console.error("Error cargando grafos:", error)
@@ -30,7 +26,7 @@ export default function App () {
     <div className="app">
       <div className="main">
         <div className="header">
-          <h1>Visualizador de Penny Graphs</h1>
+          <h1>Contact Graph Visualizer</h1>
         </div>
 
         <div className="viewer-wrapper">

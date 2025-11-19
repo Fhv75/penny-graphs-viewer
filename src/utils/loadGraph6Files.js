@@ -1,11 +1,10 @@
-// src/utils/loadGraph6Files.js
 import parseGraph6 from './parseGraph6'
 
 export default async function loadAllGraphs() {
   const urlDev = `/data/`
   const urlProd = `/penny-graphs-viewer/data/`
   const graphSets = []
-  const contactNumbers = [3, 4, 5, 6, 7, 8, 9 ,10] // Ajusta según tus archivos
+  const contactNumbers = [3, 4, 5, 6, 7, 8, 9 ,10] 
 
   for (const num of contactNumbers) {
     try {
@@ -21,7 +20,6 @@ export default async function loadAllGraphs() {
     }
   }
 
-  // Cargar el archivo adicional
   try {
     const url = urlDev + 'graphs8_extra.txt'
     const txt = await fetch(url).then(r => r.text())

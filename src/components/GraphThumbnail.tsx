@@ -1,4 +1,3 @@
-// src/components/GraphThumbnail.jsx
 import React, { useEffect, useRef, useState } from 'react';
 import { Network } from 'vis-network';
 
@@ -9,7 +8,6 @@ export default function GraphThumbnail({ graph, size = 70 }) {
   useEffect(() => {
     if (!divRef.current) return;
 
-    /* 1. crear mini-red de vis-network */
     const net = new Network(
       divRef.current,
       {
@@ -26,17 +24,15 @@ export default function GraphThumbnail({ graph, size = 70 }) {
       }
     );
 
-    /* 2. capturar imagen sólo cuando vis ya dibujó */
     const capture = () => {
       const canvas = divRef.current ? (divRef.current as HTMLDivElement).querySelector('canvas') : null;
       if (canvas) setUrl(canvas.toDataURL('image/png'));
       net.destroy();
     };
 
-    net.once('afterDrawing', capture);      // evento fiable
-    const fallback = setTimeout(capture, 300); // por si acaso
+    net.once('afterDrawing', capture);      
+    const fallback = setTimeout(capture, 300);
 
-    /* cleanup */
     return () => {
       clearTimeout(fallback);
       net.destroy();
@@ -45,13 +41,11 @@ export default function GraphThumbnail({ graph, size = 70 }) {
 
   return (
     <>
-      {/* canvas oculto para vis-network */}
       <div
         ref={divRef}
         style={{ position:'absolute', inset:0, visibility:'hidden' }}
       />
 
-      {/* miniatura o placeholder */}
       {url ? (
         <img
           src={url}

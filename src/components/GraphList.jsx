@@ -1,6 +1,5 @@
-// src/components/GraphList.jsx
 import React, { useState, useEffect } from 'react';
-import GraphThumbnail from './GraphThumbnail'; // ajusta la ruta si es distinta
+import GraphThumbnail from './GraphThumbnail'; 
 
 export default function GraphList({
   graphs,
@@ -11,7 +10,6 @@ export default function GraphList({
 }) {
   const [page, setPage] = useState(0);
 
-  // Cada vez que cambie el set de grafos, volvemos a la página 0
   useEffect(() => {
     setPage(0);
   }, [graphs]);
@@ -51,7 +49,6 @@ export default function GraphList({
         {graphs.slice(start, end).map((g, idx) => {
           const globalIdx = start + idx;
           const isActive  = globalIdx === currentIndex;
-          // incluimos `page` en la key para forzar remonte al cambiar de página
           const thumbKey = `${page}-${globalIdx}`;
           return (
             <li key={thumbKey} style={{ textAlign: 'center' }}>
@@ -65,7 +62,6 @@ export default function GraphList({
                   cursor: 'pointer',
                 }}
               >
-                {/* también ponemos key aquí, aunque con la del <li> basta */}
                 <GraphThumbnail key={thumbKey} graph={g} size={70} />
               </button>
             </li>

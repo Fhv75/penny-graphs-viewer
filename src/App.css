@@ -1,5 +1,3 @@
-/* Asegura que el contenedor principal llene la ventana */
-/* RESET GLOBAL */
 * {
     box-sizing: border-box;
   }
@@ -14,60 +12,54 @@
 .app {
     display: flex;
     flex-direction: row;
-    height: 100vh;      /* <-- fill viewport */
+    height: 100vh;      
     margin: 0;
   }
   
-  /* Panel central */
+
   .main {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    min-height: 0;      /* <-- important para que flex-1 funcione */
+    min-height: 0;      
   }
   
-  /* Cabecera */
   .header {
     padding: 1rem;
     background: #f5f5f5;
     border-bottom: 1px solid #ddd;
   }
   
-  /* Contenedor que envuelve GraphViewer */
   .viewer-wrapper {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     padding: 0;
-    min-height: 0;      /* <-- important */
+    min-height: 0;   
   }
   
-  /* El propio GraphViewer */
   .viewer {
-    flex: 1;            /* <-- toma todo el espacio restante */
+    flex: 1;          
     display: flex;
     flex-direction: column;
-    min-height: 0;      /* <-- important */
+    min-height: 0;     
   }
   
-  /* Lienzo del grafo */
   .graph-container {
-    flex: 1;            /* <-- crece para llenar el alto */
-    min-height: 0;      /* <-- important */
+    flex: 1;            
+    min-height: 0;     
     border: 1px solid gray;
     position: relative;
   }
   
-  /* Estadísticas */
   .stats {
     padding: 0.5rem 1rem;
     background: #fafafa;
     border-top: 1px solid #eee;
   }
   
-  /* Sidebar */
   .sidebar {
     width: 220px;
     border-left: 1px solid #ddd;
@@ -75,7 +67,6 @@
     padding: 1rem;
   }
   
-  /* Lista */
   .graph-list {
     list-style: none;
     margin-top: .5rem;
