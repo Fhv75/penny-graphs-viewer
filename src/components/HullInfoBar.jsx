@@ -52,7 +52,7 @@ export default function HullInfoBar({
                           fontWeight: '500',
                           transition: 'all 0.2s ease',
                           position: 'relative',
-                          display: 'flex',
+                          display: 'none',
                           alignItems: 'center',
                           gap: '6px'
                       }}
